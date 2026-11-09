@@ -1,0 +1,32 @@
+# Render Blueprint: веб-сервис Next.js + PostgreSQL (бесплатные тарифы).
+# Render → New → Blueprint → выбрать репозиторий с этой папкой.
+services:
+  - type: web
+    name: maison-lumiere
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: npm ci && npx prisma generate && npm run build
+    # Миграции и подготовка данных — при старте (на free-тарифе нет pre-deploy команды).
+    startCommand: npx prisma migrate deploy && npx tsx render/prepare-db.ts && npx next start -H 0.0.0.0 -p $PORT
+    healthCheckPath: /
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: maison-lumiere-db
+          property: connectionString
+      - key: ADMIN_LOGIN
+        value: admin
+      - key: ADMIN_PASSWORD
+        sync: false # Render попросит ввести пароль при создании Blueprint
+      - key: SALON_UTC_OFFSET_MIN
+        value: "180"
+      - key: NEXT_TELEMETRY_DISABLED
+        value: "1"
+
+databases:
+  - name: maison-lumiere-db
+    plan: free
+    region: frankfurt
+    databaseName: beauty_studio
+    user: beauty_studio

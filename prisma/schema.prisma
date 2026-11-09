@@ -1,0 +1,117 @@
+// Модель данных по ER-диаграмме из materials/srs.md
+// + учётные записи клиентов, сессии, шаблон недели для графика мастера.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Client {
+  id           Int       @id @default(autoincrement())
+  name         String
+  phone        String    @unique // нормализованный формат: +79001234567
+  passwordHash String? // null — клиент заведён администратором по телефону и ещё не регистрировался
+  createdAt    DateTime  @default(now())
+  bookings     Booking[]
+  sessions     Session[]
+}
+
+model Master {
+  id        Int              @id @default(autoincrement())
+  name      String
+  title     String           @default("") // специализация: «Стилист-колорист»
+  bio       String           @default("")
+  photoUrl  String?
+  isActive  Boolean          @default(true)
+  sortOrder Int              @default(0)
+  services  MasterService[]
+  workDays  WorkDay[]
+  weekly    WeeklyTemplate[]
+  bookings  Booking[]
+}
+
+model Service {
+  id          Int             @id @default(autoincrement())
+  name        String
+  category    String          @default("")
+  description String          @default("")
+  price       Decimal         @db.Decimal(10, 2)
+  durationMin Int
+  isActive    Boolean         @default(true)
+  sortOrder   Int             @default(0)
+  masters     MasterService[]
+  bookings    Booking[]
+}
+
+model MasterService {
+  masterId  Int
+  serviceId Int
+  master    Master  @relation(fields: [masterId], references: [id], onDelete: Cascade)
+  service   Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+
+  @@id([masterId, serviceId])
+}
+
+// «График мастера»: рабочий день на конкретную дату. Время — минуты от полуночи по времени салона.
+model WorkDay {
+  id       Int      @id @default(autoincrement())
+  masterId Int
+  workDate DateTime @db.Date
+  startMin Int
+  endMin   Int
+  master   Master   @relation(fields: [masterId], references: [id], onDelete: Cascade)
+
+  @@unique([masterId, workDate])
+}
+
+// Шаблон недели: из него администратор заполняет график на период, затем правит отдельные дни.
+model WeeklyTemplate {
+  masterId Int
+  weekday  Int // 1 = понедельник … 7 = воскресенье
+  startMin Int
+  endMin   Int
+  master   Master @relation(fields: [masterId], references: [id], onDelete: Cascade)
+
+  @@id([masterId, weekday])
+}
+
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+}
+
+model Booking {
+  id                 Int           @id @default(autoincrement())
+  clientId           Int
+  masterId           Int
+  serviceId          Int
+  startAt            DateTime      @db.Timestamptz(3)
+  endAt              DateTime      @db.Timestamptz(3)
+  status             BookingStatus @default(CONFIRMED)
+  priceAtBooking     Decimal       @db.Decimal(10, 2)
+  durationMinAtBooking Int
+  contactName        String
+  contactPhone       String
+  createdBy          String        @default("client") // client | admin
+  cancelledBy        String?
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  client             Client        @relation(fields: [clientId], references: [id])
+  master             Master        @relation(fields: [masterId], references: [id])
+  service            Service       @relation(fields: [serviceId], references: [id])
+
+  @@index([masterId, startAt])
+  @@index([clientId])
+}
+
+model Session {
+  token     String   @id
+  clientId  Int?
+  isAdmin   Boolean  @default(false)
+  expiresAt DateTime
+  client    Client?  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+}
