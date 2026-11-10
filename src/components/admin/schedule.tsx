@@ -65,7 +65,7 @@ export function ScheduleCalendar({ masterId, days }: { masterId: number; days: C
               type="button"
               disabled={d.isPast}
               onClick={() => open(d)}
-              className={`flex min-h-[86px] flex-col items-start gap-1 p-2 text-left transition-colors sm:p-3 ${
+              className={`flex min-h-[86px] min-w-0 flex-col items-start gap-1 p-2 text-left transition-colors sm:p-3 ${
                 sel ? "bg-ink text-paper" : d.work ? "bg-paper hover:bg-sand" : "bg-ivory hover:bg-sand"
               } ${d.isPast ? "cursor-default opacity-45" : ""}`}
             >
@@ -76,7 +76,10 @@ export function ScheduleCalendar({ masterId, days }: { masterId: number; days: C
                   <span className="hidden sm:inline">–{minToHHMM(d.work.endMin)}</span>
                 </span>
               ) : (
-                <span className={`text-[11px] ${sel ? "text-paper/60" : "text-muted"}`}>выходной</span>
+                <span className={`text-[11px] ${sel ? "text-paper/60" : "text-muted"}`}>
+                  <span className="sm:hidden">вых</span>
+                  <span className="hidden sm:inline">выходной</span>
+                </span>
               )}
               {d.bookings > 0 && (
                 <span className={`mt-auto text-[10px] ${sel ? "text-paper/70" : "text-accent"}`}>{d.bookings} зап.</span>

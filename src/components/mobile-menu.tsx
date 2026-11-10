@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 
 export function MobileMenu({ nav }: { nav: { href: string; label: string }[] }) {
   const [open, setOpen] = useState(false);
@@ -28,8 +29,10 @@ export function MobileMenu({ nav }: { nav: { href: string; label: string }[] }) 
         <span className={`absolute h-px w-6 bg-ink transition-transform duration-300 ${open ? "rotate-45" : "-translate-y-[4px]"}`} />
         <span className={`absolute h-px w-6 bg-ink transition-transform duration-300 ${open ? "-rotate-45" : "translate-y-[4px]"}`} />
       </button>
-      {open && (
-        <div className="fixed inset-x-0 top-[72px] bottom-0 z-50 flex flex-col bg-ivory px-5 pt-8 pb-10">
+      {/* Портал в body: у шапки backdrop-filter, и fixed внутри неё считался бы от шапки, а не от экрана */}
+      {open &&
+        createPortal(
+        <div className="fixed inset-x-0 top-[72px] bottom-0 z-50 flex flex-col overflow-y-auto bg-ivory px-5 pt-8 pb-10 md:hidden">
           <nav className="flex flex-col">
             {nav.map((n) => (
               <Link key={n.href} href={n.href} className="display border-b border-line py-4 text-[34px]">
@@ -40,8 +43,9 @@ export function MobileMenu({ nav }: { nav: { href: string; label: string }[] }) 
           <Link href="/services" className="btn btn-primary mt-auto w-full">
             Записаться
           </Link>
-        </div>
-      )}
+        </div>,
+          document.body,
+        )}
     </div>
   );
 }
